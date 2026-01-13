@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Bot, User } from 'lucide-react'
+import { Send, Bot, User, Mic, MicOff, Volume2, VolumeX } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
@@ -13,11 +13,62 @@ export default function ChatInterface() {
     ])
     const [input, setInput] = useState('')
     const [loading, setLoading] = useState(false)
+    const [isListening, setIsListening] = useState(false)
+    const [isMuted, setIsMuted] = useState(false)
     const messagesEndRef = useRef(null)
+    const recognitionRef = useRef(null)
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
     }
+
+    // --- Voice Setup ---
+    useEffect(() => {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+            recognitionRef.current = new SpeechRecognition()
+            recognitionRef.current.continuous = false
+            recognitionRef.current.interimResults = false
+
+            recognitionRef.current.onresult = (event) => {
+                const transcript = event.results[0][0].transcript
+                setInput(transcript)
+                handleSend(null, transcript) // Auto-send when speaking
+            }
+
+            recognitionRef.current.onend = () => {
+                setIsListening(false)
+            }
+        }
+    }, [])
+
+    const toggleListening = () => {
+        if (isListening) {
+            recognitionRef.current?.stop()
+            setIsListening(false)
+        } else {
+            recognitionRef.current?.start()
+            setIsListening(true)
+        }
+    }
+
+    const speak = (text) => {
+        if (isMuted || !('speechSynthesis' in window)) return
+
+        // Cancel any current speech
+        window.speechSynthesis.cancel()
+
+        const utterance = new SpeechSynthesisUtterance(text)
+        // Select a good voice if available
+        const voices = window.speechSynthesis.getVoices()
+        const preferredVoice = voices.find(v => v.name.includes('Google') || v.name.includes('Premium'))
+        if (preferredVoice) utterance.voice = preferredVoice
+
+        utterance.pitch = 1
+        utterance.rate = 1
+        window.speechSynthesis.speak(utterance)
+    }
+    // -------------------
 
     useEffect(() => {
         const fetchHistory = async () => {
@@ -37,11 +88,12 @@ export default function ChatInterface() {
         scrollToBottom()
     }, [messages])
 
-    const handleSend = async (e) => {
-        e.preventDefault()
-        if (!input.trim()) return
+    const handleSend = async (e, forcedInput = null) => {
+        if (e) e.preventDefault()
+        const messageContent = forcedInput || input
+        if (!messageContent.trim()) return
 
-        const userMsg = { role: 'user', content: input }
+        const userMsg = { role: 'user', content: messageContent }
         setMessages(prev => [...prev, userMsg])
         setInput('')
         setLoading(true)
@@ -50,6 +102,7 @@ export default function ChatInterface() {
             const res = await axios.post('/api/chat', { message: userMsg.content })
             const botMsg = { role: 'assistant', content: res.data.reply }
             setMessages(prev => [...prev, botMsg])
+            speak(botMsg.content) // Speak the response
         } catch (error) {
             console.error(error)
             setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error.' }])
@@ -59,7 +112,17 @@ export default function ChatInterface() {
     }
 
     return (
-        <div className="flex-1 flex flex-col h-full">
+        <div className="flex-1 flex flex-col h-full relative">
+            {/* Volume Toggle */}
+            <div className="absolute top-4 right-6 z-10">
+                <button
+                    onClick={() => setIsMuted(!isMuted)}
+                    className="p-2 text-white/50 hover:text-white transition-colors"
+                >
+                    {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                </button>
+            </div>
+
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
                 <AnimatePresence>
                     {messages.map((msg, idx) => (
@@ -123,14 +186,23 @@ export default function ChatInterface() {
                 <div ref={messagesEndRef} />
             </div>
 
-            <form onSubmit={handleSend} className="p-4 border-t border-white/10 flex gap-2">
+            <form onSubmit={(e) => handleSend(e)} className="p-4 border-t border-white/10 flex gap-2 items-center">
+                <button
+                    type="button"
+                    onClick={toggleListening}
+                    className={`glass-button transition-all duration-300 ${isListening ? 'bg-red-500/50 border-red-400 text-white animate-pulse' : ''}`}
+                >
+                    {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+                </button>
+
                 <input
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Type a message..."
+                    placeholder={isListening ? "Listening..." : "Type a message..."}
                     className="glass-input flex-1"
                 />
+
                 <button type="submit" className="glass-button" disabled={loading}>
                     <Send size={20} />
                 </button>

@@ -103,6 +103,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
         if self.path == '/':
             self.path = '/index.html'
         file_path = os.path.join(PUBLIC_DIR, self.path.lstrip('/'))
+        print(f"[DEBUG] Requested: {self.path} -> Resolved: {file_path} -> Exists: {os.path.exists(file_path)}")
         if not os.path.exists(file_path) and not self.path.startswith('/api'):
             file_path = os.path.join(PUBLIC_DIR, 'index.html')
         if os.path.exists(file_path) and os.path.isfile(file_path):
@@ -212,34 +213,25 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
         self.send_json({"status": "ok"})
 
     def handle_upload(self):
-        from google_drive_client import get_drive_client
-        import tempfile
-        
         data = self.read_json()
         file_data = data['file_data'].split(',')[1]
         file_bytes = base64.b64decode(file_data)
         filename = f"{uuid.uuid4()}_{data['name']}"
         
-        # Write to temporary file
-        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-            temp_file.write(file_bytes)
-            temp_path = temp_file.name
+        # Save to local uploads directory
+        file_path = os.path.join(UPLOADS_DIR, filename)
+        with open(file_path, 'wb') as f:
+            f.write(file_bytes)
         
-        try:
-            # Upload to Google Drive
-            drive = get_drive_client()
-            file_id = drive.upload_file(temp_path, filename)
-            file_url = drive.get_file_url(file_id)
-            
-            if 'parent_type' in data and 'parent_id' in data:
-                add_attachment(
-                    data['parent_type'], data['parent_id'],
-                    file_url, data['name'], data.get('media_type')
-                )
-            self.send_json({"path": file_url})
-        finally:
-            # Clean up temp file
-            os.unlink(temp_path)
+        # Return relative path for web access
+        file_url = f"/uploads/{filename}"
+        
+        if 'parent_type' in data and 'parent_id' in data:
+            add_attachment(
+                data['parent_type'], data['parent_id'],
+                file_url, data['name'], data.get('media_type')
+            )
+        self.send_json({"path": file_url})
 
     def handle_attachment(self):
         data = self.read_json()

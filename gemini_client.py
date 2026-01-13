@@ -44,9 +44,24 @@ def generate_content(prompt):
                 msg = result['candidates'][0]['content']['parts'][0]['text']
                 return msg
             except (KeyError, IndexError):
+                print(f"[ERROR] Failed to parse Gemini response: {result}")
                 return "Error parsing Gemini response."
                 
     except urllib.error.HTTPError as e:
-        return f"HTTP Error: {e.code} - {e.reason}"
+        error_body = e.read().decode("utf-8") if hasattr(e, 'read') else ""
+        print(f"[ERROR] Gemini API HTTP Error {e.code}: {e.reason}")
+        print(f"[ERROR] Response body: {error_body}")
+        
+        # Check for specific error codes
+        if e.code == 429:
+            return "⚠️ API quota exceeded. Your Gemini API token limit has been reached. Please wait for quota reset or upgrade your plan."
+        elif e.code == 403:
+            return "⚠️ API access forbidden. Please check your API key permissions."
+        elif e.code == 401:
+            return "⚠️ Invalid API key. Please verify your GEMINI_API_KEY."
+        else:
+            return f"HTTP Error: {e.code} - {e.reason}. Details: {error_body[:200]}"
+            
     except Exception as e:
+        print(f"[ERROR] Gemini API Exception: {str(e)}")
         return f"Error: {str(e)}"
