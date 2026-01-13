@@ -15,7 +15,7 @@ from database_utils import (
 )
 from gemini_client import generate_content
 
-PORT = 8000
+PORT = int(os.environ.get('PORT', 8000))
 PUBLIC_DIR = os.path.join(os.path.dirname(__file__), 'dist')
 UPLOADS_DIR = os.path.join(PUBLIC_DIR, 'uploads')
 os.makedirs(UPLOADS_DIR, exist_ok=True)
