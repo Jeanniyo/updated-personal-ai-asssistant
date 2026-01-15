@@ -9,13 +9,14 @@ venv/
 env/
 ENV/
 
-# Database (old SQLite files)
+# Database (old SQLite files - NOT USED)
 *.db
 *.sqlite
 *.sqlite3
 
-# Data storage
-data/
+# Data storage - keep structure but ignore contents
+data/*.json
+data/uploads/
 
 # Environment
 .env

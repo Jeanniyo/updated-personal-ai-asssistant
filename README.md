@@ -1,16 +1,72 @@
-# React + Vite
+# AI Personal Assistant
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A personal AI assistant with agenda, diary, chat, and file management features.
 
-Currently, two official plugins are available:
+## Features
+- 💬 AI-powered chat interface
+- 📅 Agenda management
+- 📔 Diary entries
+- 📁 File attachments
+- 💡 Daily tips
+- 👤 User profile
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Tech Stack
+- **Backend**: Python 3.11+ (no database required - uses JSON storage)
+- **Frontend**: React + Vite
+- **AI**: Google Gemini API
 
-## React Compiler
+## Deployment
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Railway (Free Tier Compatible)
+This app uses **JSON file storage** - no database required!
 
-## Expanding the ESLint configuration
+1. Push your code to GitHub
+2. Connect your GitHub repo to Railway
+3. Add environment variable: `GEMINI_API_KEY`
+4. Deploy! 🚀
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Other Platforms
+- **Fly.io**: `fly launch` (free tier available)
+- **PythonAnywhere**: Upload and configure
+- **Vercel**: Deploy frontend + serverless backend
+
+## Local Development
+
+1. Install dependencies:
+```bash
+pip install -r requirements.txt
+npm install
+```
+
+2. Build frontend:
+```bash
+npm run build
+```
+
+3. Set environment variables:
+```bash
+export GEMINI_API_KEY=your_api_key_here
+```
+
+4. Run server:
+```bash
+python server.py
+```
+
+5. Open http://localhost:8000
+
+## Environment Variables
+- `GEMINI_API_KEY` - Your Google Gemini API key (required)
+- `PORT` - Server port (default: 8000)
+
+## Storage
+All data is stored in JSON files in the `data/` directory:
+- `agenda.json` - Agenda items
+- `diary.json` - Diary entries
+- `chat_history.json` - Chat messages
+- `profile.json` - User profile
+- `daily_tips.json` - Daily tips
+- `attachments.json` - File metadata
+
+## License
+MIT
