@@ -1,0 +1,13 @@
+run = "npm run build && python server.py"
+entrypoint = "server.py"
+modules = ["python-3.11", "nodejs-20"]
+
+[nix]
+channel = "stable-23_11"
+
+[deployment]
+run = ["sh", "-c", "npm run build && python server.py"]
+deploymentTarget = "cloudrun"
+
+[env]
+PORT = "8000"
