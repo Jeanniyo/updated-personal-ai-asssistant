@@ -1,13 +1,59 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ChatInterface from './components/ChatInterface'
 import UserProfile from './components/UserProfile'
 import AgendaDiary from './components/AgendaDiary'
 import FileManager from './components/FileManager'
 import DailyTip from './components/DailyTip'
+import AuthForm from './components/AuthForm'
+import { auth } from './utils/auth'
 import './index.css'
 
 function App() {
   const [activeTab, setActiveTab] = useState('chat')
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [currentUser, setCurrentUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Check if user is already authenticated
+    const checkAuth = async () => {
+      if (auth.isAuthenticated()) {
+        const isValid = await auth.verifyToken()
+        if (isValid) {
+          setIsAuthenticated(true)
+          setCurrentUser(auth.getUser())
+        } else {
+          auth.logout()
+        }
+      }
+      setLoading(false)
+    }
+    checkAuth()
+  }, [])
+
+  const handleAuthSuccess = (user) => {
+    setIsAuthenticated(true)
+    setCurrentUser(user)
+  }
+
+  const handleLogout = () => {
+    auth.logout()
+    setIsAuthenticated(false)
+    setCurrentUser(null)
+    setActiveTab('chat')
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <AuthForm onAuthSuccess={handleAuthSuccess} />
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 md:p-8 bg-black">
@@ -22,7 +68,7 @@ function App() {
 
         {/* Sidebar */}
         <div className="w-1/3 min-w-[250px] border-r border-white/10 p-6 flex flex-col glass-sidebar bg-white/5">
-          <UserProfile />
+          <UserProfile currentUser={currentUser} />
           <DailyTip />
           <nav className="mt-8 flex-1 space-y-2">
             <button onClick={() => setActiveTab('chat')} className={`w-full text-left p-3 rounded-lg transition-all ${activeTab === 'chat' ? 'bg-white/10 text-white font-medium' : 'hover:bg-white/5 text-white/70'}`}>
@@ -35,6 +81,14 @@ function App() {
               File Manager
             </button>
           </nav>
+
+          {/* Logout button */}
+          <button
+            onClick={handleLogout}
+            className="mt-4 w-full p-3 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-200 transition-all border border-red-500/30"
+          >
+            Logout
+          </button>
         </div>
 
         {/* Main Content */}

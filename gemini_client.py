@@ -6,15 +6,31 @@ import os
 # Manual .env parser for zero-dependency environment
 env_path = os.path.join(os.path.dirname(__file__), '.env')
 if os.path.exists(env_path):
+    print(f"[INFO] Loading .env file from: {env_path}")
     with open(env_path, 'r') as f:
         for line in f:
             line = line.strip()
             if line and not line.startswith('#') and '=' in line:
                 key, value = line.split('=', 1)
-                os.environ[key.strip()] = value.strip()
+                key = key.strip()
+                value = value.strip()
+                # Remove surrounding quotes if present
+                if value.startswith('"') and value.endswith('"'):
+                    value = value[1:-1]
+                elif value.startswith("'") and value.endswith("'"):
+                    value = value[1:-1]
+                os.environ[key] = value
+                if key == "GEMINI_API_KEY":
+                    print(f"[INFO] GEMINI_API_KEY loaded successfully (length: {len(value)})")
+else:
+    print(f"[WARNING] .env file not found at: {env_path}")
 
 # You should start the server with GEMINI_API_KEY environment variable set or in .env file
 API_KEY = os.environ.get("GEMINI_API_KEY")
+if not API_KEY:
+    print("[ERROR] GEMINI_API_KEY not found in environment!")
+else:
+    print(f"[INFO] API_KEY is set (length: {len(API_KEY)})")
 
 def generate_content(prompt):
     if not API_KEY:

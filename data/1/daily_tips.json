@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "content": "Break daunting tasks into micro-steps; checking off the first tiny win immediately builds momentum and makes the full goal feel achievable.",
+    "category": "Motivation",
+    "date": "2026-01-15",
+    "timestamp": "2026-01-15T22:09:42.973368"
+  },
+  {
+    "id": 2,
+    "content": "Error: <urlopen error [Errno -3] Temporary failure in name resolution>",
+    "category": "Productivity",
+    "date": "2026-01-18",
+    "timestamp": "2026-01-18T15:10:52.324585"
+  },
+  {
+    "id": 3,
+    "content": "Schedule a daily \"tech-free twenty\" to transition your mind away from screens and fully engage in a relaxing, restorative activity.",
+    "category": "Wellness",
+    "date": "2026-01-19",
+    "timestamp": "2026-01-19T11:05:58.103605"
+  }
+]

@@ -3,6 +3,7 @@ import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Calendar, Book, Trash2, Edit2, Save, X, Paperclip, FileText } from 'lucide-react'
 import FileUploader from './FileUploader'
+import { auth } from '../utils/auth'
 
 export default function AgendaDiary() {
     const [agenda, setAgenda] = useState([])
@@ -19,8 +20,8 @@ export default function AgendaDiary() {
     const fetchData = async () => {
         try {
             const [agendaRes, diaryRes] = await Promise.all([
-                axios.get('/api/agenda'),
-                axios.get('/api/diary')
+                axios.get('/api/agenda', { headers: auth.getAuthHeader() }),
+                axios.get('/api/diary', { headers: auth.getAuthHeader() })
             ])
             setAgenda(agendaRes.data)
             setDiary(diaryRes.data)
@@ -46,9 +47,13 @@ export default function AgendaDiary() {
     const handleUpdate = async () => {
         try {
             if (editingItem.type === 'agenda') {
-                await axios.put('/api/agenda', { id: editingItem.id, content: editContent, date: editDate })
+                await axios.put('/api/agenda', { id: editingItem.id, content: editContent, date: editDate }, {
+                    headers: auth.getAuthHeader()
+                })
             } else {
-                await axios.put('/api/diary', { id: editingItem.id, content: editContent })
+                await axios.put('/api/diary', { id: editingItem.id, content: editContent }, {
+                    headers: auth.getAuthHeader()
+                })
             }
             await fetchData() // Refresh to get updated data
             cancelEdit()
@@ -61,10 +66,16 @@ export default function AgendaDiary() {
         if (!confirm("Are you sure you want to delete this item?")) return
         try {
             if (type === 'agenda') {
-                await axios.delete('/api/agenda', { data: { id } })
+                await axios.delete('/api/agenda', {
+                    data: { id },
+                    headers: auth.getAuthHeader()
+                })
                 setAgenda(prev => prev.filter(item => item.id !== id))
             } else {
-                await axios.delete('/api/diary', { data: { id } })
+                await axios.delete('/api/diary', {
+                    data: { id },
+                    headers: auth.getAuthHeader()
+                })
                 setDiary(prev => prev.filter(item => item.id !== id))
             }
         } catch (err) {
@@ -80,6 +91,8 @@ export default function AgendaDiary() {
                 file_path: fileInfo.path,
                 original_name: fileInfo.originalName,
                 media_type: fileInfo.type
+            }, {
+                headers: auth.getAuthHeader()
             })
             fetchData() // Refresh to show new attachment
         } catch (err) {
@@ -89,7 +102,10 @@ export default function AgendaDiary() {
 
     const handleRemoveAttachment = async (attachId) => {
         try {
-            await axios.delete('/api/files', { data: { id: attachId } })
+            await axios.delete('/api/files', {
+                data: { id: attachId },
+                headers: auth.getAuthHeader()
+            })
             fetchData()
         } catch (err) {
             console.error("Delete attachment failed", err)

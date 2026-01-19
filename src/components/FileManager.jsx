@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FolderOpen, FileText, Trash2, X, Image as ImageIcon } from 'lucide-react'
+import { auth } from '../utils/auth'
 
 export default function FileManager() {
     const [files, setFiles] = useState([])
@@ -13,7 +14,9 @@ export default function FileManager() {
 
     const fetchFiles = async () => {
         try {
-            const res = await axios.get('/api/files')
+            const res = await axios.get('/api/files', {
+                headers: auth.getAuthHeader()
+            })
             setFiles(res.data)
         } catch (err) {
             console.error("Failed to fetch files", err)
@@ -25,7 +28,10 @@ export default function FileManager() {
     const handleDelete = async (id) => {
         if (!confirm("Are you sure you want to delete this file? This cannot be undone.")) return
         try {
-            await axios.delete('/api/files', { data: { id } })
+            await axios.delete('/api/files', {
+                data: { id },
+                headers: auth.getAuthHeader()
+            })
             setFiles(prev => prev.filter(f => f.id !== id))
         } catch (err) {
             console.error("Failed to delete file", err)

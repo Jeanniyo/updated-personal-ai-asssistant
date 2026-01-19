@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import { User, Upload, Edit2, Check, X } from 'lucide-react'
 import axios from 'axios'
 import FileUploader from './FileUploader'
+import { auth } from '../utils/auth'
 
-export default function UserProfile() {
+export default function UserProfile({ currentUser }) {
     const [profile, setProfile] = useState({ name: 'User', photo_path: null })
     const [isEditing, setIsEditing] = useState(false)
     const [editName, setEditName] = useState('')
@@ -15,7 +16,9 @@ export default function UserProfile() {
 
     const fetchProfile = async () => {
         try {
-            const res = await axios.get('/api/profile')
+            const res = await axios.get('/api/profile', {
+                headers: auth.getAuthHeader()
+            })
             setProfile(res.data)
             setEditName(res.data.name)
         } catch (err) {
@@ -30,6 +33,8 @@ export default function UserProfile() {
             await axios.post('/api/profile', {
                 name: editName,
                 photo_path: profile.photo_path
+            }, {
+                headers: auth.getAuthHeader()
             })
             setProfile(prev => ({ ...prev, name: editName }))
             setIsEditing(false)
@@ -43,6 +48,8 @@ export default function UserProfile() {
             await axios.post('/api/profile', {
                 name: profile.name,
                 photo_path: fileInfo.path
+            }, {
+                headers: auth.getAuthHeader()
             })
             setProfile(prev => ({ ...prev, photo_path: fileInfo.path }))
         } catch (err) {

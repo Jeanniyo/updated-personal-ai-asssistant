@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { auth } from '../utils/auth'
 
 export default function ChatInterface() {
     const [messages, setMessages] = useState([
@@ -22,18 +23,51 @@ export default function ChatInterface() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
     }
 
+
     // --- Voice Setup ---
     useEffect(() => {
+        // Load voices when they become available
+        const loadVoices = () => {
+            const voices = window.speechSynthesis.getVoices()
+            if (voices.length > 0) {
+                console.log('Available voices:', voices.map(v => v.name))
+            }
+        }
+
+        if ('speechSynthesis' in window) {
+            loadVoices()
+            window.speechSynthesis.onvoiceschanged = loadVoices
+        }
+
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
             recognitionRef.current = new SpeechRecognition()
             recognitionRef.current.continuous = false
-            recognitionRef.current.interimResults = false
+            recognitionRef.current.interimResults = true
+            recognitionRef.current.lang = 'en-US'
+            recognitionRef.current.maxAlternatives = 1
 
             recognitionRef.current.onresult = (event) => {
-                const transcript = event.results[0][0].transcript
-                setInput(transcript)
-                handleSend(null, transcript) // Auto-send when speaking
+                const transcript = event.results[event.results.length - 1][0].transcript
+
+                // Update input field with interim results
+                if (event.results[event.results.length - 1].isFinal) {
+                    setInput(transcript)
+                    // Don't auto-send, let user review and send manually
+                } else {
+                    setInput(transcript)
+                }
+            }
+
+            recognitionRef.current.onerror = (event) => {
+                console.error('Speech recognition error:', event.error)
+                setIsListening(false)
+
+                if (event.error === 'no-speech') {
+                    console.log('No speech detected, try again')
+                } else if (event.error === 'network') {
+                    alert('Network error. Please check your connection.')
+                }
             }
 
             recognitionRef.current.onend = () => {
@@ -47,8 +81,13 @@ export default function ChatInterface() {
             recognitionRef.current?.stop()
             setIsListening(false)
         } else {
-            recognitionRef.current?.start()
-            setIsListening(true)
+            try {
+                recognitionRef.current?.start()
+                setIsListening(true)
+            } catch (error) {
+                console.error('Failed to start recognition:', error)
+                alert('Microphone access denied or unavailable')
+            }
         }
     }
 
@@ -59,13 +98,48 @@ export default function ChatInterface() {
         window.speechSynthesis.cancel()
 
         const utterance = new SpeechSynthesisUtterance(text)
-        // Select a good voice if available
-        const voices = window.speechSynthesis.getVoices()
-        const preferredVoice = voices.find(v => v.name.includes('Google') || v.name.includes('Premium'))
-        if (preferredVoice) utterance.voice = preferredVoice
 
-        utterance.pitch = 1
-        utterance.rate = 1
+        // Select the best natural-sounding voice
+        const voices = window.speechSynthesis.getVoices()
+
+        // Priority order for natural voices
+        const preferredVoices = [
+            'Google US English',
+            'Microsoft Zira - English (United States)',
+            'Samantha',
+            'Karen',
+            'Google UK English Female',
+            'Microsoft David - English (United States)',
+            'Alex'
+        ]
+
+        let selectedVoice = null
+        for (const preferred of preferredVoices) {
+            selectedVoice = voices.find(v => v.name === preferred)
+            if (selectedVoice) break
+        }
+
+        // Fallback to any English female voice
+        if (!selectedVoice) {
+            selectedVoice = voices.find(v =>
+                v.lang.startsWith('en') && v.name.toLowerCase().includes('female')
+            )
+        }
+
+        // Final fallback to any English voice
+        if (!selectedVoice) {
+            selectedVoice = voices.find(v => v.lang.startsWith('en'))
+        }
+
+        if (selectedVoice) {
+            utterance.voice = selectedVoice
+        }
+
+        // Natural speech settings
+        utterance.pitch = 1.0
+        utterance.rate = 0.95  // Slightly slower for clarity
+        utterance.volume = 1.0
+
         window.speechSynthesis.speak(utterance)
     }
     // -------------------
@@ -73,7 +147,9 @@ export default function ChatInterface() {
     useEffect(() => {
         const fetchHistory = async () => {
             try {
-                const res = await axios.get('/api/chat/history')
+                const res = await axios.get('/api/chat/history', {
+                    headers: auth.getAuthHeader()
+                })
                 if (res.data && res.data.length > 0) {
                     setMessages(res.data)
                 }
@@ -99,7 +175,9 @@ export default function ChatInterface() {
         setLoading(true)
 
         try {
-            const res = await axios.post('/api/chat', { message: userMsg.content })
+            const res = await axios.post('/api/chat', { message: userMsg.content }, {
+                headers: auth.getAuthHeader()
+            })
             const botMsg = { role: 'assistant', content: res.data.reply }
             setMessages(prev => [...prev, botMsg])
             speak(botMsg.content) // Speak the response

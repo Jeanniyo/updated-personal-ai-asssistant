@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { motion } from 'framer-motion'
 import { Lightbulb, RefreshCw } from 'lucide-react'
+import { auth } from '../utils/auth'
 
 export default function DailyTip() {
     const [tip, setTip] = useState(null)
@@ -14,7 +15,9 @@ export default function DailyTip() {
 
     const fetchTip = async () => {
         try {
-            const res = await axios.get('/api/daily-tip')
+            const res = await axios.get('/api/daily-tip', {
+                headers: auth.getAuthHeader()
+            })
             setTip(res.data)
         } catch (err) {
             console.error("Failed to fetch daily tip", err)
@@ -28,7 +31,9 @@ export default function DailyTip() {
     const generateNewTip = async () => {
         setRefreshing(true)
         try {
-            const res = await axios.post('/api/daily-tip/generate')
+            const res = await axios.post('/api/daily-tip/generate', {}, {
+                headers: auth.getAuthHeader()
+            })
             setTip(res.data)
         } catch (err) {
             console.error("Failed to generate tip", err)
